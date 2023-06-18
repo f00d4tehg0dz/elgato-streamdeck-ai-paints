@@ -1,0 +1,47 @@
+{
+	"SDKVersion": 2,
+	"Author": "f00d4tehg0dz",
+	"CodePath": "app.html",
+	"Description": "View a AI Generative art with a click of a button!",
+	"Name": "AI Paints",
+	"Icon": "actions/template/assets/action",
+	"URL": "https://github.com/f00d4tehg0dz/elgato-streamdeck-ai-paints",
+	"Version": "1.0.2",
+	"Software": {
+		"MinimumVersion": "5.0"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "10.11"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Category": "AI Paints",
+	"CategoryIcon": "actions/template/assets/actionimage",
+	"Actions": [
+		{
+			"Icon": "actions/template/assets/actionimage",
+			"Name": "AI Paints",
+			"Controllers": ["Keypad", "Encoder"],
+			"Encoder": {
+				"layout": "$B1",
+				"TriggerDescription": {
+					"Push": "Describe the encoder push",
+					"Touch": "Describe the touch"
+				}
+			},
+			"States": [
+				{
+					"Image": "actions/template/assets/action"
+				}
+			],
+			"Tooltip": "Install me for AI Generative actions",
+			"UUID": "com.f00d4tehg0dz.aipaints.action",
+			"PropertyInspectorPath": "actions/template/property-inspector/inspector.html"
+		}
+	]
+}

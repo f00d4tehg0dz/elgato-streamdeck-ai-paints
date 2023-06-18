@@ -1,0 +1,15 @@
+{
+  "Description": "Sehen Sie sich ein Bob Ross-Gemälde mit einem Klick an!",
+  "Name": "Bob Ross Paints",
+  "Category": "Engagement",
+  "com.f00d4tehg0dz.aipaints.action": {
+    "Name": "Bob Ross Paints",
+    "Tooltip": "A happy tree for everyone"
+  },
+  "Localization": {
+    "Instructions": "Anweisungen",
+    "Watch Video": "Schau Video",
+    "Watch Bob Ross Paint this": "Sehen Sie, wie Bob Ross das malt",
+    "GitHub Page": "GitHub-Seite"
+  }
+}

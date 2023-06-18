@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+        content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <title>AI Paints</title>
+    <link rel="stylesheet" href="../../../libs/css/sdpi.css" />
+</head>
+
+<body>
+    <div class="sdpi-wrapper">
+        <!-- Tabs Section -->
+        <div type="tabs" class="sdpi-item">
+            <div class="sdpi-item-label empty"></div>
+            <div class="tabs">
+                <div class="tab selected" data-target="#tab1" title="Prompts">Prompts</div>
+                <div class="tab" data-target="#tab2" title="Instructions">Instructions</div>
+            </div>
+        </div>
+        <hr class="tab-separator">
+
+        <!-- Property Inspector Form -->
+        <form id="property-inspector">
+            <!-- Tab 1: Prompts -->
+            <div id="tab1" class="tab-container">
+                <div class="sdpi-item">
+                    <div data-localize class="sdpi-item-label" title="Positive Prompt">Input a Positive Prompt</div>
+                    <input type="text" id="positivePrompt" />
+                </div>
+                <div class="sdpi-item">
+                    <div data-localize class="sdpi-item-label" title="Negative Prompt">Input a Negative Prompt</div>
+                    <input type="text" id="negativePrompt" />
+                </div>
+                <div class="sdpi-item">
+                    <div class="sdpi-item-label">Generate Image</div>
+                    <button class="sdpi-item-value" value="update" id="update">Generate</button>
+               </div>
+
+                <!-- Hidden elements for storing image information -->
+
+                    <div data-localize class="sdpi-heading" title="generateStatus" style="align-items: flex-start;">Generating Status</div>
+                        <div class="sdpi-item" style="max-width: 100%;  justify-content: center;">
+                            <div id="currentText" class="sdpi-item" style="display:none;"></div>
+                       </div>
+                       <div class="sdpi-item"  style="align-items: flex-start;  max-width: 100%;  justify-content: center;">
+                        <img id="currentImage" height="144" width="144" style="display:none;"> </img>
+                   </div>
+
+
+            </div>
+
+            <!-- Tab 2: Instructions -->
+            <div id="tab2" class="tab-container">
+                <div class="sdpi-item">
+                    <div data-localize class="sdpi-item-label" title="Instructions">Instructions</div>
+                    <p>Enter a positive and negative prompt, and click Generate to begin!<br>
+                        New generated images will refresh from your existing prompts when you press the key on your
+                        StreamDeck.<br>
+                        <br>
+                        Positive Prompt means what you want to be generated<br>
+                        Negative Prompt means what you want to not be generated<br>
+                    </p>
+                </div>
+                <div class="sdpi-item">
+                    <div data-localize class="sdpi-item-label" title="Example">Example</div>
+                    <p>
+                        Positive Prompt: A Pikachu in a favela realistic
+                        Negative Prompt: low quality, illustration
+                        <br>You can learn more about this plugin by visiting its <button class="sdpi-item-value"
+                            value="GitHub" data-localize id="github">
+                            GitHub Page
+                        </button>
+                    </p>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Hidden element for displaying info label -->
+    <div class="sdpi-info-label hidden" style="top: -1000" value=""></div>
+
+    <!-- Stream Deck Libs -->
+    <script src="../../../libs/js/constants.js"></script>
+    <script src="../../../libs/js/prototypes.js"></script>
+    <script src="../../../libs/js/timers.js"></script>
+    <script src="../../../libs/js/utils.js"></script>
+    <script src="../../../libs/js/events.js"></script>
+    <script src="../../../libs/js/api.js"></script>
+    <script src="../../../libs/js/property-inspector.js"></script>
+    <script src="../../../libs/js/dynamic-styles.js"></script>
+
+    <!-- Property Inspector Source -->
+    <script src="inspector.js"></script>
+</body>
+
+</html>
