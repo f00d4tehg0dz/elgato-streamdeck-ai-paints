@@ -7,3 +7,4 @@ package.json
 .history
 __exclude
 .editorconfig
+src/com.f00d4tehg0dz.aipaints.sdPlugin/libs/
