@@ -19,15 +19,22 @@ myAction.onSendToPlugin((payload) => {
 
   // Store the payload in the cache object
   cache.payload = innerPayload;
+  // console.log(innerPayload)
+  // Check if payload is available
+  if (innerPayload) {
 
-  startSocket(context, positivePrompt, negativePrompt)
-    .then(base64Image => {
-      // Set the image using the returned base64 image
-      $SD.setImage(context, base64Image);
-    })
-    .catch(err => {
-      console.error("Error:", err);
-    });
+    // Call the startSocket function with the prompts
+    startSocket(context, positivePrompt, negativePrompt)
+      .then(base64Image => {
+        // console.log("OnSendToPlugin", base64Image)
+        // // Set the image using the returned base64 image
+        // $SD.setImage(context, base64Image);
+        // $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt });
+      })
+      .catch(err => {
+        console.error("Error:", err);
+      });
+    }
 });
 
 // Generate a hash for the WebSocket connection
@@ -65,9 +72,80 @@ function sendTextToPlugin(text) {
     action: 'sendText',
     text: text,
   };
-  console.log(message)
   $SD.setGlobalSettings(message);
 }
+
+function sendInputTextToPlugin(positiveInput, negativeInput) {
+
+  const message = {
+    action: 'sendInputText',
+    text: {"positive": positiveInput, "negative": negativeInput},
+  };
+  $SD.setGlobalSettings(message);
+}
+
+/**
+ * Load an image from the current episode
+ * @param {string} currentTextPrompt - The image URL of the current episode
+ * @returns {Promise<string|null>} - The base64 representation of the image or null if the image is undefined
+ */
+function loadImageFromText(currentTextPrompt) {
+  return new Promise((resolved) => {
+      if (!currentTextPrompt) {
+          resolved(null); // or any other appropriate handling for undefined imgLink
+      }
+
+      let image = new Image();
+      image.src = currentTextPrompt;
+      image.onload = function () {
+          let canvas = document.createElement('canvas');
+          canvas.width = this.width;
+          canvas.height = this.height;
+
+          let ctx = canvas.getContext('2d');
+          ctx.drawImage(this, 0, 0, this.width, this.height);
+
+          canvas.toBlob(function (blob) {
+              let reader = new FileReader();
+              reader.onloadend = function () {
+                resolved(reader.result);
+              }
+              reader.readAsDataURL(blob);
+          });
+      };
+  });
+}
+
+// Fetch your data if nothing is prompted
+let textPrompt = [];
+fetch('./textPrompts.json')
+    .then(response => response.json())
+    .then(data => {
+      textPrompt = data;
+    })
+    .catch(error => console.error("Failed to retrieve JSON data:", error));
+
+// Handle the onWillAppear event
+myAction.onWillAppear(({ context, settings }) => {
+  if (settings && settings.base64Image) {
+      // Use the last saved image if available
+      lastImage = settings.base64Image;
+      $SD.setImage(context, lastImage);
+
+  } else {
+      // Get a new random text prompt if no last image is available
+      const currentTextPrompt = textPrompt[Math.floor(Math.random() * textPrompt.length)];
+      lastImage = currentTextPrompt.image;
+      // Load the image and update the button image
+      sendInputTextToPlugin(currentTextPrompt.positive, currentTextPrompt.negative)
+      loadImageFromText(lastImage).then(base64Image => {
+        $SD.setImage(context, base64Image);
+        $SD.setSettings(context, { base64Image: base64Image, positive: currentTextPrompt.positive, negative: currentTextPrompt.negative });
+    }).catch(err => {
+        console.error("Failed to load image:", err);
+    });
+  }
+});
 
 // Register the onKeyUp event handler
 myAction.onKeyUp(({ action, context, device, event }) => {
@@ -83,6 +161,8 @@ myAction.onKeyUp(({ action, context, device, event }) => {
       .then(base64Image => {
         // Set the image using the returned base64 image
         $SD.setImage(context, base64Image);
+        $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt });
+
       })
       .catch(err => {
         console.error("Error:", err);
@@ -96,7 +176,7 @@ myAction.onKeyUp(({ action, context, device, event }) => {
 async function startSocket(context, positivePrompt, negativePrompt) {
   return new Promise((resolve, reject) => {
     // Open the WebSocket connection to your server
-    const ws = new WebSocket('wss://stabilityai-stable-diffusion.hf.space/queue/join');
+    const ws = new WebSocket(atob('d3NzOi8vc3RhYmlsaXR5YWktc3RhYmxlLWRpZmZ1c2lvbi5oZi5zcGFjZS9xdWV1ZS9qb2lu'));
     let timerCounter = null;
     let sentData = false;
 
@@ -128,7 +208,7 @@ async function startSocket(context, positivePrompt, negativePrompt) {
           }, delayBetweenSteps);
         }
       } else if (msg.msg === 'estimation') {
-        const timeToComplete = ('Time to generate ' + msg.rank_eta)
+        const timeToComplete = ('Time till generation ' + msg.rank_eta)
 
         sendTextToPlugin(timeToComplete)
         // Wait before resolving to proceed to the next step
@@ -147,11 +227,25 @@ async function startSocket(context, positivePrompt, negativePrompt) {
         clearTimeout(timerCounter);
         try {
           const results = msg.output.data[0];
-          sendTextToPlugin("")
+          sendTextToPlugin("");
           const base64Image = results[0]; // Assuming the base64 image is the first element
-          // Resolve with the base64 image
-          resolve(base64Image);
-          sendImageToPlugin(base64Image)
+
+          // Define a recursive function to wait for a valid base64Image
+          function sendImageWithRetry() {
+            if (base64Image && base64Image !== 'undefined') {
+              // Resolve with the base64 image
+              // console.log("resolve and sendImageToPlugin", base64Image);
+              resolve(base64Image);
+              $SD.setImage(context, base64Image);
+              sendImageToPlugin(base64Image);
+            } else {
+              // Retry after a delay
+              setTimeout(sendImageWithRetry, 1000); // Adjust the delay as needed
+            }
+          }
+
+          // Call the recursive function to wait for a valid base64Image
+          sendImageWithRetry();
 
           ws.close();
         } catch (error) {
@@ -160,6 +254,7 @@ async function startSocket(context, positivePrompt, negativePrompt) {
           ws.close();
           reject(error);
         }
+
       } else if (msg.msg === 'queue_full') {
         const queue = "Queue is full!"
 
@@ -172,8 +267,6 @@ async function startSocket(context, positivePrompt, negativePrompt) {
 
     ws.onclose = () => {
       // WebSocket connection closed
-      //console.log('WebSocket connection closed');
-
       reject(new Error('WebSocket connection closed'));
     };
 
@@ -189,6 +282,6 @@ async function startSocket(context, positivePrompt, negativePrompt) {
       ws.close();
       sendTextToPlugin("Timed out, please try again")
       reject(new Error('WebSocket connection timeout'));
-    }, 55000);
+    }, 550000);
   })
 }

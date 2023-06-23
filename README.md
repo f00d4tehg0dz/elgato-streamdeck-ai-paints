@@ -1,12 +1,11 @@
-# elgato-streamdeck-bob-ross-paints
- StreamDeck plugin for Bob Ross
+# elgato-streamdeck-ai-paints
+ StreamDeck plugin for AI Paint
 
 ## Description
 
-`Stream Deck Plugin Bob Ross Paints` is a simple plugin that
+`Stream Deck Plugin AI Paints` is a simple plugin that
 
-- randomly paints a picture from Bob Ross paintings on your Stream Deck button
-- lets you view the respective Bob Ross YouTube video of the process of him painting the art in your Stream Deck button
+- generate a picture from AI Paint paintings on your Stream Deck button
 - localized in German and Spanish
 
 ## Installation

@@ -9,17 +9,40 @@ $PI.onConnected((jsn) => {
     const { actionInfo, appInfo, connection, messageType, port, uuid } = jsn;
     const { payload, context } = actionInfo;
     const { settings } = payload;
+   // Load the previously selected episode on connect
+   if (settings && settings.base64Image) {
 
-    // Retrieve the positivePrompt and negativePrompt values from the payload and set them in the inspector inputs
+    const imageElement = document.getElementById('currentImage');
+    const positivePromptInput = document.getElementById('positivePrompt');
+    const negativePromptInput = document.getElementById('negativePrompt');
+
+    if (imageElement) {
+        imageElement.src = settings.base64Image;
+        imageElement.style.display = 'block';
+    }
+
+    if (positivePromptInput) {
+        positivePromptInput.value = settings.positive;
+
+    }
+
+    if (negativePromptInput) {
+        negativePromptInput.value = settings.negative;
+    }
+
+    else {
+           // Retrieve the positivePrompt and negativePrompt values from the payload and set them in the inspector inputs
     const positivePromptInput = document.getElementById('positivePrompt');
     const negativePromptInput = document.getElementById('negativePrompt');
     positivePromptInput.value = payload.positivePrompt || '';
     negativePromptInput.value = payload.negativePrompt || '';
+    }
+}
+
 });
 
 $PI.onDidReceiveGlobalSettings((payload) => {
     // Handle the received payload here
-    console.log(payload.payload.settings)
     if (payload.payload.settings.action === 'sendImage') {
         const imageElement = document.getElementById('currentImage');
         imageElement.src = payload.payload.settings.image;
@@ -30,11 +53,17 @@ $PI.onDidReceiveGlobalSettings((payload) => {
         textElement.innerHTML = payload.payload.settings.text;
         textElement.style.display = 'block';
     }
+    if (payload.payload.settings.action === 'sendInputText') {
+        const positiveTextElement = document.getElementById('positivePrompt');
+        const negativeTextElement = document.getElementById('negativePrompt');
+        positiveTextElement.value = payload.payload.settings.text.positive;
+        negativeTextElement.value = payload.payload.settings.text.negative;
+    }
 });
 
 // Event listener for the Github button
 document.querySelector('#github').addEventListener('click', () => {
-    openUrl('https://github.com/f00d4tehg0dz/elgato-streamdeck-ai-paints');
+    $PI.openUrl('https://github.com/f00d4tehg0dz/elgato-streamdeck-ai-paints');
 });
 
 function connectElgatoStreamDeckSocket(inPort, uuid, messageType, appInfoString, actionInfo) {

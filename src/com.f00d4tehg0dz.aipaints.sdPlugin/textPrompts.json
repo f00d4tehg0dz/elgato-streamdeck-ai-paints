@@ -1,0 +1,42 @@
+[
+	{
+		"positive": "photorealistic flying house, many details, Ultra detailed, octane render, by Alexander Jansson",
+		"negative": "low definition",
+		"image": "./images/flying-house.jpg"
+	},
+	{
+		"positive": "city center public park, modern landscape architectural design for industrialpunk, water in the middle, dramatic lighting and composition, octane render, unreal engine 5, 8k --ar 3:1",
+		"negative": "low definition",
+		"image": "./images/city-center.jpg"
+	},
+	{
+		"positive": "dense woodland landscape, ::0.4 , English forest, Irish forest, scottish forest, perspective, folklore,King Arthur, Lord of the Rings, Game of Thrones. ultra photoreal , photographic, concept art, cinematic lighting, cinematic composition, rule of thirds , mysterious, eerie, cinematic lighting, ultra-detailed, ultrarealistic, photorealism, 8k, octane render, Albert Bierstadt ",
+		"negative": "low definition",
+		"image": "./images/dense-woodland.jpg"
+	},
+	{
+		"positive": "fibonacci, stone, snail, wallpaper, colorful, blue gray green, 3d pattern, 8k",
+		"negative": "low definition",
+		"image": "./images/fibonacci.jpg"
+	},
+	{
+		"positive": "hungarian parliament underwater-beach, palm trees behind, aerial shot, real photography, unreal-engine, 4k, highly detailed --wallpaper --uplight",
+		"negative": "low definition",
+		"image": "./images/hungarian-parliament.jpg"
+	},
+	{
+		"positive": "hyerophant, god light, cinematic look, octane render, under water, --wallpaper",
+		"negative": "low definition",
+		"image": "./images/hyerophant.jpg"
+	},
+	{
+		"positive": "photo of an extremely cute alien fish swimming an alien habitable underwater planet, coral reefs, dream-like atmosphere, water, plants, peaceful, serenity, calm ocean, transparent water, reefs, fish, coral, inner peace, awareness, silence, nature, evolution --version 3 --s 42000 --uplight --ar 4:3 --no text, blur",
+		"negative": "low definition",
+		"image": "./images/alien-fish.jpg"
+	},
+	{
+		"positive": "a home built in a huge Soap bubble, windows, doors, porches, awnings, middle of SPACE, cyberpunk lights, Hyper Detail, 8K, HD, Octane Rendering, Unreal Engine, V-Ray, full hd -- s5000 --uplight --q 3 --stop 80--w 0.5 --ar 1:3",
+		"negative": "low definition",
+		"image": "./images/soap-bubble.jpg"
+	}
+]

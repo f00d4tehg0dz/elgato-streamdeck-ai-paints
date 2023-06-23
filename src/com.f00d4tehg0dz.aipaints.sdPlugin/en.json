@@ -1,15 +1,12 @@
 {
-  "Description": "View a AI Generative Image with a click of a button!",
+  "Description": "Create an AI generated image with a click of a button!",
   "Name": "AI Paints",
   "Category": "Engagement",
   "com.f00d4tehg0dz.aipaints.action": {
-    "Name": "AI Paints",
-    "Tooltip": "A happy tree for everyone"
+    "Name": "Generate",
+    "Tooltip": "Generate a new Image"
   },
   "Localization": {
-    "Instructions": "Instructions",
-    "Watch Video": "Watch Video",
-    "Watch Bob Ross Paint this": "Watch Bob Ross Paint this",
-    "GitHub Page": "GitHub Page"
+    "Instructions": "Instructions"
   }
 }
