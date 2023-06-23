@@ -1,30 +1,34 @@
 # elgato-streamdeck-ai-paints
- StreamDeck plugin for AI Paint
+ StreamDeck plugin for AI Paints
 
 ## Description
 
-`Stream Deck Plugin AI Paints` is a simple plugin that
+`Stream Deck Plugin AI Paints`
 
-- generate a picture from AI Paint paintings on your Stream Deck button
-- localized in German and Spanish
+Unleash your creativity with our AI-powered image generator powered by Stable Diffusion technology! With just two simple questions, you can bring any image to life. Our app offers the following features:
+
+* State-of-the-art AI technology for generative imagery
+* Easy and intuitive user interface
+* Quick generation of existing prompts with a single tap
+* Endless possibilities for creating unique and inspiring images
 
 ## Installation
 
-Download from [Release Folder](Release/com.f00d4tehg0dz.bobrosspaints.streamDeckPlugin)
+Download from [Release Folder](Release/com.f00d4tehg0dz.ai-paints.streamDeckPlugin)
 
-Double click to install to StreamDeck.
+Double-click to install to StreamDeck.
 
 ## Demo
 
-![](https://github.com/f00d4tehg0dz/elgato-streamdeck-bob-ross-paints/blob/main/screenshot/bob-ross-paints.gif?raw=true)
+![](https://github.com/f00d4tehg0dz/elgato-streamdeck-ai-paints/blob/main/screenshot/ai-paints.gif?raw=true)
 
 ### Clone the repo
 
-```git clone https://github.com/f00d4tehg0dz/elgato-streamdeck-bob-ross-paints```
+```git clone https://github.com/f00d4tehg0dz/elgato-streamdeck-ai-paints```
 
 ### Get the latest library
 
-You can either clone the javascript library or add it as a submodule to your repository.
+You can clone the javascript library or add it as a submodule to your repository.
 
 #### Clone
 
