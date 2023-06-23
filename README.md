@@ -14,7 +14,7 @@ Unleash your creativity with our AI-powered image generator powered by Stable Di
 
 ## Installation
 
-Download from [Release Folder](Release/com.f00d4tehg0dz.ai-paints.streamDeckPlugin)
+Download from [Release Folder](Release/com.f00d4tehg0dz.aipaints.streamDeckPlugin)
 
 Double-click to install to StreamDeck.
 
