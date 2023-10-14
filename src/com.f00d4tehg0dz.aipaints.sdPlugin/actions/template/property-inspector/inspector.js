@@ -9,36 +9,28 @@ $PI.onConnected((jsn) => {
     const { actionInfo, appInfo, connection, messageType, port, uuid } = jsn;
     const { payload, context } = actionInfo;
     const { settings } = payload;
-   // Load the previously selected episode on connect
-   if (settings && settings.base64Image) {
+
+    // Retrieve cached values from localStorage
+    const cachedPositivePrompt = localStorage.getItem('positivePrompt');
+    const cachedNegativePrompt = localStorage.getItem('negativePrompt');
+    const cachedBase64Image = localStorage.getItem('base64Image');
 
     const imageElement = document.getElementById('currentImage');
     const positivePromptInput = document.getElementById('positivePrompt');
     const negativePromptInput = document.getElementById('negativePrompt');
 
-    if (imageElement) {
-        imageElement.src = settings.base64Image;
+    if (cachedBase64Image && imageElement) {
+        imageElement.src = cachedBase64Image;
         imageElement.style.display = 'block';
     }
 
-    if (positivePromptInput) {
-        positivePromptInput.value = settings.positive;
-
+    if (cachedPositivePrompt && positivePromptInput) {
+        positivePromptInput.value = cachedPositivePrompt;
     }
 
-    if (negativePromptInput) {
-        negativePromptInput.value = settings.negative;
+    if (cachedNegativePrompt && negativePromptInput) {
+        negativePromptInput.value = cachedNegativePrompt;
     }
-
-    else {
-           // Retrieve the positivePrompt and negativePrompt values from the payload and set them in the inspector inputs
-    const positivePromptInput = document.getElementById('positivePrompt');
-    const negativePromptInput = document.getElementById('negativePrompt');
-    positivePromptInput.value = payload.positivePrompt || '';
-    negativePromptInput.value = payload.negativePrompt || '';
-    }
-}
-
 });
 
 $PI.onDidReceiveGlobalSettings((payload) => {

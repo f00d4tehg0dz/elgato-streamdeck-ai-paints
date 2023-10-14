@@ -1,6 +1,5 @@
 /// <reference path="../../../libs/js/api.js" />
 const myAction = new Action('com.f00d4tehg0dz.aipaints.action');
-
 let lastImage = null;
 const cache = {}; // Define the cache object to store the payload
 /**
@@ -8,8 +7,22 @@ const cache = {}; // Define the cache object to store the payload
  */
 $SD.onConnected(({ actionInfo, appInfo, connection, messageType, port, uuid }) => {
   console.log('Stream Deck connected!');
-});
 
+  // Retrieve cached values from localStorage
+  const cachedPositivePrompt = localStorage.getItem('positivePrompt');
+  const cachedNegativePrompt = localStorage.getItem('negativePrompt');
+  const cachedBase64Image = localStorage.getItem('base64Image');
+
+  if (cachedBase64Image) {
+    // Use the cached image
+    $SD.setImage(context, cachedBase64Image);
+  }
+
+  if (cachedPositivePrompt && cachedNegativePrompt) {
+    // Use the cached prompts
+    sendInputTextToPlugin(cachedPositivePrompt, cachedNegativePrompt);
+  }
+});
 // Register the onSendToPlugin event handler
 myAction.onSendToPlugin((payload) => {
   const innerPayload = payload.payload;
@@ -19,6 +32,12 @@ myAction.onSendToPlugin((payload) => {
 
   // Store the payload in the cache object
   cache.payload = innerPayload;
+
+  // Save the prompts to localStorage
+  localStorage.setItem('positivePrompt', positivePrompt);
+  localStorage.setItem('negativePrompt', negativePrompt);
+  localStorage.setItem('base64Image', innerPayload.base64Image);
+
   // console.log(innerPayload)
   // Check if payload is available
   if (innerPayload) {
@@ -127,22 +146,28 @@ fetch('./textPrompts.json')
 
 // Handle the onWillAppear event
 myAction.onWillAppear(({ context, settings }) => {
-  if (settings && settings.base64Image) {
-      // Use the last saved image if available
-      lastImage = settings.base64Image;
-      $SD.setImage(context, lastImage);
+  const cachedPositivePrompt = localStorage.getItem('positivePrompt');
+  const cachedNegativePrompt = localStorage.getItem('negativePrompt');
+  const cachedBase64Image = localStorage.getItem('base64Image');
 
+  if (cachedBase64Image) {
+    // Use the cached image
+    $SD.setImage(context, cachedBase64Image);
   } else {
-      // Get a new random text prompt if no last image is available
-      const currentTextPrompt = textPrompt[Math.floor(Math.random() * textPrompt.length)];
-      lastImage = currentTextPrompt.image;
-      // Load the image and update the button image
-      sendInputTextToPlugin(currentTextPrompt.positive, currentTextPrompt.negative)
-      loadImageFromText(lastImage).then(base64Image => {
-        $SD.setImage(context, base64Image);
-        $SD.setSettings(context, { base64Image: base64Image, positive: currentTextPrompt.positive, negative: currentTextPrompt.negative });
+    // Get a new random text prompt if no last image is available
+    const currentTextPrompt = textPrompt[Math.floor(Math.random() * textPrompt.length)];
+    lastImage = currentTextPrompt.image;
+
+    // Load the image and update the button image
+    sendInputTextToPlugin(currentTextPrompt.positive, currentTextPrompt.negative);
+    loadImageFromText(lastImage).then(base64Image => {
+      $SD.setImage(context, base64Image);
+      $SD.setSettings(context, { base64Image: base64Image, positive: currentTextPrompt.positive, negative: currentTextPrompt.negative });
+
+      // Save the new image to localStorage
+      localStorage.setItem('base64Image', base64Image);
     }).catch(err => {
-        console.error("Failed to load image:", err);
+      console.error("Failed to load image:", err);
     });
   }
 });
@@ -162,6 +187,8 @@ myAction.onKeyUp(({ action, context, device, event }) => {
         // Set the image using the returned base64 image
         $SD.setImage(context, base64Image);
         $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt });
+        // Save the new image to localStorage
+        localStorage.setItem('base64Image', base64Image);
 
       })
       .catch(err => {
@@ -179,6 +206,8 @@ async function startSocket(context, positivePrompt, negativePrompt) {
     const ws = new WebSocket(atob('d3NzOi8vc3RhYmlsaXR5YWktc3RhYmxlLWRpZmZ1c2lvbi5oZi5zcGFjZS9xdWV1ZS9qb2lu'));
     let timerCounter = null;
     let sentData = false;
+    // const savedPositivePrompt = localStorage.getItem('positivePrompt');
+    // const savedNegativePrompt = localStorage.getItem('negativePrompt');
 
     const delayBetweenSteps = 60000; // 60 second delay between steps
     ws.onopen = () => {
@@ -237,6 +266,8 @@ async function startSocket(context, positivePrompt, negativePrompt) {
               // console.log("resolve and sendImageToPlugin", base64Image);
               resolve(base64Image);
               $SD.setImage(context, base64Image);
+              // Save the new image to localStorage
+              localStorage.setItem('base64Image', base64Image);
               sendImageToPlugin(base64Image);
             } else {
               // Retry after a delay
