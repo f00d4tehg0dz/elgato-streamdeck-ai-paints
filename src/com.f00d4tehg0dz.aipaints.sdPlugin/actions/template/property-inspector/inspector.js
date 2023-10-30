@@ -9,11 +9,9 @@ $PI.onConnected((jsn) => {
     const { actionInfo, appInfo, connection, messageType, port, uuid } = jsn;
     const { payload, context } = actionInfo;
     const { settings } = payload;
-
-    // Retrieve cached values from localStorage
-    const cachedPositivePrompt = localStorage.getItem('positivePrompt');
-    const cachedNegativePrompt = localStorage.getItem('negativePrompt');
-    const cachedBase64Image = localStorage.getItem('base64Image');
+    const cachedPositivePrompt = localStorage.getItem('positivePromptInspector');
+    const cachedNegativePrompt = localStorage.getItem('negativePromptInspector');
+    const cachedBase64Image = localStorage.getItem('base64ImageInspector');
 
     const imageElement = document.getElementById('currentImage');
     const positivePromptInput = document.getElementById('positivePrompt');
@@ -39,6 +37,7 @@ $PI.onDidReceiveGlobalSettings((payload) => {
         const imageElement = document.getElementById('currentImage');
         imageElement.src = payload.payload.settings.image;
         imageElement.style.display = 'block';
+        localStorage.setItem('base64ImageInspector', payload.payload.settings.image);
     }
     if (payload.payload.settings.action === 'sendText') {
         const textElement = document.getElementById('currentText');
@@ -50,6 +49,8 @@ $PI.onDidReceiveGlobalSettings((payload) => {
         const negativeTextElement = document.getElementById('negativePrompt');
         positiveTextElement.value = payload.payload.settings.text.positive;
         negativeTextElement.value = payload.payload.settings.text.negative;
+        localStorage.setItem('positivePromptInspector', positiveTextElement.value);
+        localStorage.setItem('negativePromptInspector', negativeTextElement.value);
     }
 });
 
@@ -59,11 +60,37 @@ document.querySelector('#github').addEventListener('click', () => {
 });
 
 function connectElgatoStreamDeckSocket(inPort, uuid, messageType, appInfoString, actionInfo) {
-    const { actionName } = actionInfo;
     websocket = new WebSocket(`ws://127.0.0.1:${inPort}`);
     const delay = window?.initialConnectionDelay || 0;
     setTimeout(() => {
         $PI.connect(inPort, uuid, messageType, appInfoString, actionInfo);
+        // const jsonObject = JSON.parse(actionInfo);
+        // console.log(jsonObject)
+        // const positivePrompt = jsonObject.payload.settings.positive;
+        // const negativePrompt = jsonObject.payload.settings.negative;
+        // const base64Image = jsonObject.payload.settings.base64Image;
+
+        const cachedPositivePrompt = localStorage.getItem('positivePromptInspector');
+        const cachedNegativePrompt = localStorage.getItem('negativePromptInspector');
+        const cachedBase64Image = localStorage.getItem('base64ImageInspector');
+
+        const imageElement = document.getElementById('currentImage');
+        const positivePromptInput = document.getElementById('positivePrompt');
+        const negativePromptInput = document.getElementById('negativePrompt');
+
+        if (cachedBase64Image && imageElement) {
+            imageElement.src = cachedBase64Image;
+            imageElement.style.display = 'block';
+        }
+
+        if (cachedPositivePrompt && positivePromptInput) {
+            positivePromptInput.value = cachedPositivePrompt;
+        }
+
+        if (cachedNegativePrompt && negativePromptInput) {
+            negativePromptInput.value = cachedNegativePrompt;
+        }
+
 
         // Event listener for the Update button
         document.querySelector('#update').addEventListener('click', (event) => {

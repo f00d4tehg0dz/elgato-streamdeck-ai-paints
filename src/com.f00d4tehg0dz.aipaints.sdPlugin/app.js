@@ -8,21 +8,28 @@ const cache = {}; // Define the cache object to store the payload
 $SD.onConnected(({ actionInfo, appInfo, connection, messageType, port, uuid }) => {
   console.log('Stream Deck connected!');
 
-  // Retrieve cached values from localStorage
-  const cachedPositivePrompt = localStorage.getItem('positivePrompt');
-  const cachedNegativePrompt = localStorage.getItem('negativePrompt');
-  const cachedBase64Image = localStorage.getItem('base64Image');
+  // Check if actionInfo and actionInfo.payload are defined
+  if (actionInfo && actionInfo.payload) {
+    const { payload, context } = actionInfo;
+    // const { settings } = payload;
 
-  if (cachedBase64Image) {
-    // Use the cached image
-    $SD.setImage(context, cachedBase64Image);
-  }
+    // Retrieve cached values from localStorage
+    const cachedPositivePrompt = localStorage.getItem('positivePrompt');
+    const cachedNegativePrompt = localStorage.getItem('negativePrompt');
+    const cachedBase64Image = localStorage.getItem('base64Image');
 
-  if (cachedPositivePrompt && cachedNegativePrompt) {
-    // Use the cached prompts
-    sendInputTextToPlugin(cachedPositivePrompt, cachedNegativePrompt);
+    if (cachedBase64Image) {
+      // Use the cached image
+      $SD.setImage(context, cachedBase64Image);
+    }
+
+    if (cachedPositivePrompt && cachedNegativePrompt) {
+      // Use the cached prompts
+      sendInputTextToPlugin(cachedPositivePrompt, cachedNegativePrompt);
+    }
   }
 });
+
 // Register the onSendToPlugin event handler
 myAction.onSendToPlugin((payload) => {
   const innerPayload = payload.payload;
@@ -45,6 +52,7 @@ myAction.onSendToPlugin((payload) => {
     // Call the startSocket function with the prompts
     startSocket(context, positivePrompt, negativePrompt)
       .then(base64Image => {
+        // *** TODO | CLEANUP *** //
         // console.log("OnSendToPlugin", base64Image)
         // // Set the image using the returned base64 image
         // $SD.setImage(context, base64Image);
@@ -104,34 +112,34 @@ function sendInputTextToPlugin(positiveInput, negativeInput) {
 }
 
 /**
- * Load an image from the current episode
- * @param {string} currentTextPrompt - The image URL of the current episode
+ * Load an image and text from cache
+ * @param {string} currentTextPrompt -The current text
  * @returns {Promise<string|null>} - The base64 representation of the image or null if the image is undefined
  */
 function loadImageFromText(currentTextPrompt) {
   return new Promise((resolved) => {
       if (!currentTextPrompt) {
-          resolved(null); // or any other appropriate handling for undefined imgLink
+          resolved(null);
       }
+      // init and define
+      // let image = new Image();
+      // image.src = currentTextPrompt;
+      // image.onload = function () {
+      //     let canvas = document.createElement('canvas');
+      //     canvas.width = this.width;
+      //     canvas.height = this.height;
 
-      let image = new Image();
-      image.src = currentTextPrompt;
-      image.onload = function () {
-          let canvas = document.createElement('canvas');
-          canvas.width = this.width;
-          canvas.height = this.height;
+      //     let ctx = canvas.getContext('2d');
+      //     ctx.drawImage(this, 0, 0, this.width, this.height);
 
-          let ctx = canvas.getContext('2d');
-          ctx.drawImage(this, 0, 0, this.width, this.height);
-
-          canvas.toBlob(function (blob) {
-              let reader = new FileReader();
-              reader.onloadend = function () {
-                resolved(reader.result);
-              }
-              reader.readAsDataURL(blob);
-          });
-      };
+          // canvas.toBlob(function (blob) {
+          //     let reader = new FileReader();
+          //     reader.onloadend = function () {
+          //       resolved(reader.result);
+          //     }
+          //     reader.readAsDataURL(blob);
+          // });
+      // };
   });
 }
 
@@ -153,6 +161,7 @@ myAction.onWillAppear(({ context, settings }) => {
   if (cachedBase64Image) {
     // Use the cached image
     $SD.setImage(context, cachedBase64Image);
+    sendInputTextToPlugin(cachedPositivePrompt, cachedNegativePrompt);
   } else {
     // Get a new random text prompt if no last image is available
     const currentTextPrompt = textPrompt[Math.floor(Math.random() * textPrompt.length)];
