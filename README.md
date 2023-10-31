@@ -37,3 +37,6 @@ You can clone the javascript library or add it as a submodule to your repository
 #### Add Submodule
 
 ```git submodule add https://github.com/elgatosf/streamdeck-javascript-sdk src/my.domain.plugin-name/libs```
+
+#### Compile for Distribution
+```C:\Users\xxx\Downloads\DistributionTool.exe -b -i C:\Users\xxx\OneDrive\Documents\GitHub\elgato-streamdeck-ai-paints\src\com.f00d4tehg0dz.aipaints.sdPlugin -o C:\Users\xxx\OneDrive\Documents\GitHub\elgato-streamdeck-ai-paints\Release```
