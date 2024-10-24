@@ -30,6 +30,79 @@ $SD.onConnected(({ actionInfo, appInfo, connection, messageType, port, uuid }) =
   }
 });
 
+async function pollImageGeneration(requestId, context) {
+  const response = await fetch(`https://f00d.me/generate-image/check-status/${requestId}`);
+  
+  if (!response.ok) {
+    console.error(`Failed to poll status: ${response.statusText}`);
+    return;
+  }
+
+  const result = await response.json();
+
+  if (result.status === 'completed') {
+    console.log('Image ready:', result.image);
+    // Update Stream Deck with the generated image
+    $SD.setImage(context, result.image);
+    localStorage.setItem('base64Image', result.image);
+    sendTextToPlugin("Image generated successfully!");
+    sendImageToPlugin( result.image);
+  } else if (result.status === 'pending') {
+    sendTextToPlugin("Still processing...");
+    console.log('Still processing...');
+    setTimeout(() => pollImageGeneration(requestId, context), 5000); // Poll every 5 seconds
+  } else if (result.status === 'failed') {
+    console.error('Failed to generate image:', result.error);
+    sendTextToPlugin(`Failed: ${result.error}, maybe you hit the max images(10) allowed to be generated per hour?`);
+  }
+}
+
+async function queryBackendForImage(prompt) {
+  const response = await fetch('https://f00d.me/generate-image', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ prompt: prompt }),
+  });
+
+  if (!response.ok) {
+    sendTextToPlugin(`Failed to generate image: ${response.statusText}`)
+    throw new Error(`Failed to generate image: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  return result.image;
+}
+
+async function generateImageFromPrompt(context, positivePrompt, negativePrompt) {
+  try {
+    const prompt = `${positivePrompt} ${negativePrompt}`;
+    
+    const response = await fetch('https://f00d.me/generate-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt: prompt }),
+    });
+
+    if (!response.ok) {
+      sendTextToPlugin(`Failed to generate image: ${response.statusText}`);
+      throw new Error(`Failed to generate image: ${response.statusText}`);
+    }
+
+    const { requestId } = await response.json();
+    sendTextToPlugin("Generating image, please wait...");
+
+    // Start polling for the image generation status
+    pollImageGeneration(requestId, context);
+  } catch (error) {
+    console.error("Error generating image:", error);
+    throw error;
+  }
+}
+
 // Register the onSendToPlugin event handler
 myAction.onSendToPlugin((payload) => {
   const innerPayload = payload.payload;
@@ -44,47 +117,23 @@ myAction.onSendToPlugin((payload) => {
   localStorage.setItem('positivePrompt', positivePrompt);
   localStorage.setItem('negativePrompt', negativePrompt);
   localStorage.setItem('base64Image', innerPayload.base64Image);
-
+    sendTextToPlugin("Generating, Please wait up to 2 minutes")
   // console.log(innerPayload)
   // Check if payload is available
   if (innerPayload) {
-
-    // Call the startSocket function with the prompts
-    startSocket(context, positivePrompt, negativePrompt)
-      .then(base64Image => {
-        // *** TODO | CLEANUP *** //
-        // console.log("OnSendToPlugin", base64Image)
-        // // Set the image using the returned base64 image
-        // $SD.setImage(context, base64Image);
-        // $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt });
+    generateImageFromPrompt(context, positivePrompt, negativePrompt)
+      .then((base64Image) => {
+        // Set the image using the returned base64 image
+        $SD.setImage(context, base64Image);
+        $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt }); 
+        sendTextToPlugin("")
+        sendImageToPlugin(base64Image);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Error:", err);
       });
-    }
-});
-
-// Generate a hash for the WebSocket connection
-function generateHash() {
-  function makeID(length) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    let counter = 0;
-    while (counter < length) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-      counter += 1;
-    }
-    return result;
   }
-
-  // String printing in hash
-  let hash = makeID(11);
-  return {
-    session_hash: hash,
-    fn_index: 3
-  };
-}
+});
 
 function sendImageToPlugin(image) {
   const message = {
@@ -169,14 +218,17 @@ myAction.onWillAppear(({ context, settings }) => {
 
     // Load the image and update the button image
     sendInputTextToPlugin(currentTextPrompt.positive, currentTextPrompt.negative);
-    loadImageFromText(lastImage).then(base64Image => {
+    generateImageFromPrompt(context, currentTextPrompt.positive, currentTextPrompt.negative)
+    .then((base64Image) => {
       $SD.setImage(context, base64Image);
       $SD.setSettings(context, { base64Image: base64Image, positive: currentTextPrompt.positive, negative: currentTextPrompt.negative });
-
-      // Save the new image to localStorage
+      sendImageToPlugin(base64Image);
+      sendTextToPlugin("")
       localStorage.setItem('base64Image', base64Image);
-    }).catch(err => {
+    })
+    .catch((err) => {
       console.error("Failed to load image:", err);
+      sendTextToPlugin("Failed to load image:")
     });
   }
 });
@@ -190,138 +242,19 @@ myAction.onKeyUp(({ action, context, device, event }) => {
   if (payload) {
     const { positivePrompt, negativePrompt } = payload;
 
-    // Call the startSocket function with the prompts
-    startSocket(context, positivePrompt, negativePrompt)
-      .then(base64Image => {
-        // Set the image using the returned base64 image
-        $SD.setImage(context, base64Image);
-        $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt });
-        // Save the new image to localStorage
-        localStorage.setItem('base64Image', base64Image);
-
-      })
-      .catch(err => {
-        console.error("Error:", err);
-      });
+    generateImageFromPrompt(context, positivePrompt, negativePrompt)
+    .then((base64Image) => {
+      $SD.setImage(context, base64Image);
+      $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt });
+      sendImageToPlugin(base64Image);
+      sendTextToPlugin("")
+      localStorage.setItem('base64Image', base64Image);
+    })
+    .catch((err) => {
+      console.error("Error:", err);
+      sendTextToPlugin("Failed to load image:")
+    });
   } else {
     console.log('No payload available');
   }
 });
-
-// Start the WebSocket connection and send positive and negative inputs
-async function startSocket(context, positivePrompt, negativePrompt) {
-  return new Promise((resolve, reject) => {
-    // Open the WebSocket connection to your server
-    const ws = new WebSocket(atob('d3NzOi8vc3RhYmlsaXR5YWktc3RhYmxlLWRpZmZ1c2lvbi5oZi5zcGFjZS9xdWV1ZS9qb2lu'));
-    let timerCounter = null;
-    let sentData = false;
-    // const savedPositivePrompt = localStorage.getItem('positivePrompt');
-    // const savedNegativePrompt = localStorage.getItem('negativePrompt');
-
-    const delayBetweenSteps = 60000; // 60 second delay between steps
-    ws.onopen = () => {
-      // WebSocket is connected, send message
-      const hash = generateHash();
-      ws.send(JSON.stringify(hash));
-      //console.log('Hash Sent', hash);
-    };
-
-    ws.onmessage = event => {
-      const hash = generateHash();
-      const message = event.data;
-      //console.log('Received message:', message);
-      const msg = JSON.parse(message);
-      if (msg.msg === 'send_data') {
-        if (!sentData) {
-          const data = {
-            data: [positivePrompt, negativePrompt, 9],
-            ...hash,
-          };
-          //console.log('Data sent:', data);
-          ws.send(JSON.stringify(data));
-          sentData = true;
-          // Wait before resolving to proceed to the next step
-          setTimeout(() => {
-            resolve();
-          }, delayBetweenSteps);
-        }
-      } else if (msg.msg === 'estimation') {
-        const timeToComplete = ('Time till generation ' + msg.rank_eta)
-
-        sendTextToPlugin(timeToComplete)
-        // Wait before resolving to proceed to the next step
-        setTimeout(() => {
-          resolve();
-        }, delayBetweenSteps);
-      } else if (msg.msg === 'process_starts') {
-
-        sendTextToPlugin("Generating, Please wait")
-        // Wait before resolving to proceed to the next step
-        setTimeout(() => {
-          resolve();
-        }, delayBetweenSteps);
-      }
-      else if (msg.msg === 'process_completed') {
-        clearTimeout(timerCounter);
-        try {
-          const results = msg.output.data[0];
-          sendTextToPlugin("");
-          const base64Image = results[0]; // Assuming the base64 image is the first element
-
-          // Define a recursive function to wait for a valid base64Image
-          function sendImageWithRetry() {
-            if (base64Image && base64Image !== 'undefined') {
-              // Resolve with the base64 image
-              // console.log("resolve and sendImageToPlugin", base64Image);
-              resolve(base64Image);
-              $SD.setImage(context, base64Image);
-              // Save the new image to localStorage
-              localStorage.setItem('base64Image', base64Image);
-              sendImageToPlugin(base64Image);
-            } else {
-              // Retry after a delay
-              setTimeout(sendImageWithRetry, 1000); // Adjust the delay as needed
-            }
-          }
-
-          // Call the recursive function to wait for a valid base64Image
-          sendImageWithRetry();
-
-          ws.close();
-        } catch (error) {
-          console.error(error);
-          // Close the WebSocket connection if an error occurs
-          ws.close();
-          reject(error);
-        }
-
-      } else if (msg.msg === 'queue_full') {
-        const queue = "Queue is full!"
-
-        sendTextToPlugin(queue)
-        // Close the WebSocket connection if the queue is full
-        ws.close();
-        reject(new Error('Queue is full'));
-      }
-    };
-
-    ws.onclose = () => {
-      // WebSocket connection closed
-      reject(new Error('WebSocket connection closed'));
-    };
-
-    ws.onerror = error => {
-      // WebSocket error occurred
-      sendTextToPlugin("Error", error)
-      console.error('WebSocket error:', error);
-      reject(error);
-    };
-
-    // Close the WebSocket connection after 12000ms
-    timerCounter = setTimeout(() => {
-      ws.close();
-      sendTextToPlugin("Timed out, please try again")
-      reject(new Error('WebSocket connection timeout'));
-    }, 550000);
-  })
-}
