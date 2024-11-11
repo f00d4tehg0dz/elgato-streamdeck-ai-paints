@@ -6,9 +6,9 @@
 	"Name": "AI Paints",
 	"Icon": "actions/template/assets/action",
 	"URL": "https://github.com/f00d4tehg0dz/elgato-streamdeck-ai-paints",
-	"Version": "1.0.4",
+	"Version": "1.0.4.0",
 	"Software": {
-		"MinimumVersion": "5.0"
+		"MinimumVersion": "6.4"
 	},
 	"OS": [
 		{
@@ -22,11 +22,15 @@
 	],
 	"Category": "AI Paints",
 	"CategoryIcon": "actions/template/assets/category",
+	"UUID": "com.f00d4tehg0dz.aipaints",
 	"Actions": [
 		{
 			"Icon": "actions/template/assets/actionimage",
 			"Name": "Generate",
-			"Controllers": ["Keypad", "Encoder"],
+			"Controllers": [
+				"Keypad",
+				"Encoder"
+			],
 			"Encoder": {
 				"layout": "$B1",
 				"TriggerDescription": {
