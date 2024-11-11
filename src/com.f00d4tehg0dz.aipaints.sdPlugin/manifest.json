@@ -6,7 +6,7 @@
 	"Name": "AI Paints",
 	"Icon": "actions/template/assets/action",
 	"URL": "https://github.com/f00d4tehg0dz/elgato-streamdeck-ai-paints",
-	"Version": "1.0.3",
+	"Version": "1.0.4",
 	"Software": {
 		"MinimumVersion": "5.0"
 	},

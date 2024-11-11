@@ -9,6 +9,26 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>AI Paints</title>
     <link rel="stylesheet" href="../../../libs/css/sdpi.css" />
+    <style>
+        #viewButton {
+            background-color: #2D7FF9;
+            color: white;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+
+        #viewButton:hover {
+            background-color: #1E6AD8;
+        }
+
+        #viewButton:active {
+            background-color: #1555B7;
+        }
+    </style>
 </head>
 
 <body>
@@ -27,6 +47,18 @@
         <form id="property-inspector">
             <!-- Tab 1: Prompts -->
             <div id="tab1" class="tab-container">
+                <div class="sdpi-item">
+                    <div class="sdpi-item-label">Hugging Face API Key (Optional)</div>
+                    <input class="sdpi-item-value" id="huggingFaceKey" type="password" placeholder="Enter your Hugging Face API key">
+                </div>
+                
+                <div class="sdpi-item">
+                    <div class="sdpi-item-label">Model Selection (Optional)</div>
+                    <select class="sdpi-item-value select" id="modelSelection">
+                        <option value="flux">FLUX</option>
+                        <option value="sd">Stable Diffusion</option>
+                    </select>
+                </div>
                 <div class="sdpi-item">
                     <div data-localize class="sdpi-item-label" title="Positive Prompt">What to generate</div>
                     <input type="text" id="positivePrompt" />
@@ -49,6 +81,11 @@
                        <div class="sdpi-item"  style="align-items: flex-start;  max-width: 100%;  justify-content: center;">
                         <img id="currentImage" height="144" width="144" style="display:none;"> </img>
                    </div>
+                   <div class="sdpi-item" style="align-items: flex-start; max-width: 100%; justify-content: center;">
+                    <button class="sdpi-item-value" id="viewButton" style="display:none;">
+                        View Image
+                    </button>
+                </div>
 
 
             </div>
@@ -61,6 +98,7 @@
                         New generated images will refresh from your existing prompts when you press the key on your
                         StreamDeck.<br>
                     </p>
+                    <p> If you have a Hugging Face API key, you can enter it in the field above to choose the model you want to use. Otherwise, the image will be generated with StableDiffusion.
                 </div>
                 <div class="sdpi-item">
                     <div data-localize class="sdpi-item-label" title="Example">Example</div>

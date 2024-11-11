@@ -31,29 +31,44 @@ $SD.onConnected(({ actionInfo, appInfo, connection, messageType, port, uuid }) =
 });
 
 async function pollImageGeneration(requestId, context) {
-  const response = await fetch(`https://f00d.me/generate-image/check-status/${requestId}`);
-  
-  if (!response.ok) {
-    console.error(`Failed to poll status: ${response.statusText}`);
-    return;
-  }
+  try {
+    console.log('Polling for request:', requestId);
+    
+    const response = await fetch(`https://f00d.me/generate-image/check-status/${requestId}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Polling error:', {
+        status: response.status,
+        statusText: response.statusText,
+        details: errorData
+      });
+      return;
+    }
 
-  const result = await response.json();
+    const result = await response.json();
+    console.log('Poll result:', result);
 
-  if (result.status === 'completed') {
-    console.log('Image ready:', result.image);
-    // Update Stream Deck with the generated image
-    $SD.setImage(context, result.image);
-    localStorage.setItem('base64Image', result.image);
-    sendTextToPlugin("Image generated successfully!");
-    sendImageToPlugin( result.image);
-  } else if (result.status === 'pending') {
-    sendTextToPlugin("Still processing...");
-    console.log('Still processing...');
-    setTimeout(() => pollImageGeneration(requestId, context), 5000); // Poll every 5 seconds
-  } else if (result.status === 'failed') {
-    console.error('Failed to generate image:', result.error);
-    sendTextToPlugin(`Failed: ${result.error}, maybe you hit the max images(10) allowed to be generated per hour?`);
+    if (result.status === 'completed') {
+      console.log('Image ready:', result.image ? result.image.substring(0, 100) + '...' : 'No image');
+      $SD.setImage(context, result.image);
+      localStorage.setItem('base64Image', result.image);
+      sendTextToPlugin("Image generated successfully!");
+      sendImageToPlugin(result.image);
+    } else if (result.status === 'pending') {
+      sendTextToPlugin("Still processing...");
+      console.log('Still processing request:', requestId);
+      setTimeout(() => pollImageGeneration(requestId, context), 5000);
+    } else if (result.status === 'failed') {
+      console.error('Generation failed:', {
+        error: result.error,
+        details: result.details
+      });
+      sendTextToPlugin(`Failed: ${result.error}\nDetails: ${result.details || 'No additional details'}`);
+    }
+  } catch (error) {
+    console.error('Polling error:', error);
+    sendTextToPlugin(`Polling error: ${error.message}`);
   }
 }
 
@@ -75,10 +90,140 @@ async function queryBackendForImage(prompt) {
   return result.image;
 }
 
-async function generateImageFromPrompt(context, positivePrompt, negativePrompt) {
+async function generateImageFromHuggingFace(context, positivePrompt, negativePrompt, apiKey, model) {
   try {
-    const prompt = `${positivePrompt} ${negativePrompt}`;
+    let apiUrl;
+    let payload;
+
+    // Log the input parameters (excluding the API key for security)
+    console.log('Generating image with Hugging Face:', {
+      model,
+      positivePrompt,
+      negativePrompt,
+      hasApiKey: !!apiKey
+    });
+
+    switch (model) {
+      case 'flux':
+        apiUrl = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev';
+        payload = {
+          inputs: positivePrompt + (negativePrompt ? ` Negative prompt: ${negativePrompt}` : ''),
+          parameters: {
+            height: 1024,
+            width: 1024,
+            guidance_scale: 3.5,
+            num_inference_steps: 50
+          }
+        };
+        break;
+      case 'sd':
+        apiUrl = 'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0';
+        payload = {
+          inputs: positivePrompt + (negativePrompt ? ` Negative prompt: ${negativePrompt}` : ''),
+          parameters: {
+            height: 1024,
+            width: 1024,
+            guidance_scale: 3.5,
+            num_inference_steps: 12
+          }
+        };
+        break;
+      default:
+        throw new Error(`Unknown model: ${model}`);
+    }
+
+    console.log('Making request to:', apiUrl);
+    console.log('With payload:', payload);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Hugging Face API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        url: apiUrl
+      });
+
+      let errorMessage = `Hugging Face API error (${response.status}): ${response.statusText}`;
+      try {
+        // Try to parse the error text as JSON
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMessage += `\nDetails: ${errorJson.error}`;
+        }
+      } catch (e) {
+        // If parsing fails, use the raw error text
+        errorMessage += `\nDetails: ${errorText}`;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    // Check if the response is actually an image
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('image')) {
+      const responseText = await response.text();
+      console.error('Unexpected response type:', {
+        contentType,
+        responseText
+      });
+      throw new Error('Received invalid response from Hugging Face API');
+    }
+
+    // The response will be the image blob
+    const blob = await response.blob();
+    const base64Image = await blobToBase64(blob);
     
+    // Update Stream Deck with the generated image
+    $SD.setImage(context, base64Image);
+    localStorage.setItem('base64Image', base64Image);
+    sendTextToPlugin("Image generated successfully!");
+    sendImageToPlugin(base64Image);
+
+    return base64Image;
+
+  } catch (error) {
+    console.error("Error generating image:", error);
+    sendTextToPlugin(`Failed to generate image: ${error.message}`);
+    throw error;
+  }
+}
+
+// Helper function to convert blob to base64
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function generateImageFromPrompt(context, positivePrompt, negativePrompt, huggingFaceKey = null, selectedModel = null) {
+  try {
+    console.log('Generating image with:', {
+      positivePrompt,
+      negativePrompt,
+      hasHuggingFaceKey: !!huggingFaceKey,
+      selectedModel
+    });
+
+    if (huggingFaceKey && huggingFaceKey.trim() !== '') {
+      return await generateImageFromHuggingFace(context, positivePrompt, negativePrompt, huggingFaceKey, selectedModel);
+    }
+
+    const prompt = `${positivePrompt} ${negativePrompt}`;
+    console.log('Sending prompt to local server:', prompt);
+
     const response = await fetch('https://f00d.me/generate-image', {
       method: 'POST',
       headers: {
@@ -88,17 +233,27 @@ async function generateImageFromPrompt(context, positivePrompt, negativePrompt) 
     });
 
     if (!response.ok) {
-      sendTextToPlugin(`Failed to generate image: ${response.statusText}`);
-      throw new Error(`Failed to generate image: ${response.statusText}`);
+      const errorData = await response.json();
+      console.error('Server error:', errorData);
+      const errorMessage = `Failed to generate image: ${response.statusText}\nDetails: ${JSON.stringify(errorData)}`;
+      sendTextToPlugin(errorMessage);
+      throw new Error(errorMessage);
     }
 
-    const { requestId } = await response.json();
-    sendTextToPlugin("Generating image, please wait...");
+    const data = await response.json();
+    console.log('Server response:', data);
 
-    // Start polling for the image generation status
-    pollImageGeneration(requestId, context);
+    if (!data.requestId) {
+      throw new Error('No requestId received from server');
+    }
+
+    sendTextToPlugin("Generating image, please wait...");
+    await pollImageGeneration(data.requestId, context);
+    
+    return null;
   } catch (error) {
     console.error("Error generating image:", error);
+    sendTextToPlugin(`Error: ${error.message}`);
     throw error;
   }
 }
@@ -109,28 +264,43 @@ myAction.onSendToPlugin((payload) => {
   const context = payload.context;
   const positivePrompt = innerPayload.positivePrompt;
   const negativePrompt = innerPayload.negativePrompt;
+  const huggingFaceKey = innerPayload.huggingFaceKey;
+  const selectedModel = innerPayload.selectedModel;
 
-  // Store the payload in the cache object
-  cache.payload = innerPayload;
+  // Store all relevant data in the cache object
+  cache.payload = {
+    positivePrompt,
+    negativePrompt,
+    huggingFaceKey,
+    selectedModel
+  };
 
-  // Save the prompts to localStorage
+  // Save all values to localStorage
   localStorage.setItem('positivePrompt', positivePrompt);
   localStorage.setItem('negativePrompt', negativePrompt);
-  localStorage.setItem('base64Image', innerPayload.base64Image);
-    sendTextToPlugin("Generating, Please wait up to 2 minutes")
-  // console.log(innerPayload)
-  // Check if payload is available
+  localStorage.setItem('huggingFaceKey', huggingFaceKey);
+  localStorage.setItem('modelSelection', selectedModel);
+  
+  sendTextToPlugin("Generating, Please wait...");
+
   if (innerPayload) {
-    generateImageFromPrompt(context, positivePrompt, negativePrompt)
+    generateImageFromPrompt(context, positivePrompt, negativePrompt, huggingFaceKey, selectedModel)
       .then((base64Image) => {
-        // Set the image using the returned base64 image
-        $SD.setImage(context, base64Image);
-        $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt }); 
-        sendTextToPlugin("")
-        sendImageToPlugin(base64Image);
+        if (base64Image) {
+          $SD.setImage(context, base64Image);
+          $SD.setSettings(context, { 
+            base64Image: base64Image, 
+            positive: positivePrompt, 
+            negative: negativePrompt 
+          });
+          localStorage.setItem('base64Image', base64Image);
+          sendTextToPlugin("");
+          sendImageToPlugin(base64Image);
+        }
       })
       .catch((err) => {
         console.error("Error:", err);
+        sendTextToPlugin(`Error: ${err.message}`);
       });
   }
 });
@@ -206,6 +376,8 @@ myAction.onWillAppear(({ context, settings }) => {
   const cachedPositivePrompt = localStorage.getItem('positivePrompt');
   const cachedNegativePrompt = localStorage.getItem('negativePrompt');
   const cachedBase64Image = localStorage.getItem('base64Image');
+  const cachedHuggingFaceKey = localStorage.getItem('huggingFaceKey');
+  const cachedModel = localStorage.getItem('modelSelection');
 
   if (cachedBase64Image) {
     // Use the cached image
@@ -218,17 +390,29 @@ myAction.onWillAppear(({ context, settings }) => {
 
     // Load the image and update the button image
     sendInputTextToPlugin(currentTextPrompt.positive, currentTextPrompt.negative);
-    generateImageFromPrompt(context, currentTextPrompt.positive, currentTextPrompt.negative)
+    generateImageFromPrompt(
+      context, 
+      currentTextPrompt.positive, 
+      currentTextPrompt.negative,
+      cachedHuggingFaceKey,
+      cachedModel
+    )
     .then((base64Image) => {
-      $SD.setImage(context, base64Image);
-      $SD.setSettings(context, { base64Image: base64Image, positive: currentTextPrompt.positive, negative: currentTextPrompt.negative });
-      sendImageToPlugin(base64Image);
-      sendTextToPlugin("")
-      localStorage.setItem('base64Image', base64Image);
+      if (base64Image) {
+        $SD.setImage(context, base64Image);
+        $SD.setSettings(context, { 
+          base64Image: base64Image, 
+          positive: currentTextPrompt.positive, 
+          negative: currentTextPrompt.negative 
+        });
+        sendImageToPlugin(base64Image);
+        sendTextToPlugin("");
+        localStorage.setItem('base64Image', base64Image);
+      }
     })
     .catch((err) => {
       console.error("Failed to load image:", err);
-      sendTextToPlugin("Failed to load image:")
+      sendTextToPlugin(`Failed to load image: ${err.message}`);
     });
   }
 });
@@ -240,20 +424,26 @@ myAction.onKeyUp(({ action, context, device, event }) => {
 
   // Check if payload is available
   if (payload) {
-    const { positivePrompt, negativePrompt } = payload;
+    const { positivePrompt, negativePrompt, huggingFaceKey, selectedModel } = payload;
 
-    generateImageFromPrompt(context, positivePrompt, negativePrompt)
-    .then((base64Image) => {
-      $SD.setImage(context, base64Image);
-      $SD.setSettings(context, { base64Image: base64Image, positive: positivePrompt, negative: negativePrompt });
-      sendImageToPlugin(base64Image);
-      sendTextToPlugin("")
-      localStorage.setItem('base64Image', base64Image);
-    })
-    .catch((err) => {
-      console.error("Error:", err);
-      sendTextToPlugin("Failed to load image:")
-    });
+    generateImageFromPrompt(context, positivePrompt, negativePrompt, huggingFaceKey, selectedModel)
+      .then((base64Image) => {
+        if (base64Image) {
+          $SD.setImage(context, base64Image);
+          $SD.setSettings(context, { 
+            base64Image: base64Image, 
+            positive: positivePrompt, 
+            negative: negativePrompt 
+          });
+          sendImageToPlugin(base64Image);
+          sendTextToPlugin("");
+          localStorage.setItem('base64Image', base64Image);
+        }
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        sendTextToPlugin(`Failed to load image: ${err.message}`);
+      });
   } else {
     console.log('No payload available');
   }

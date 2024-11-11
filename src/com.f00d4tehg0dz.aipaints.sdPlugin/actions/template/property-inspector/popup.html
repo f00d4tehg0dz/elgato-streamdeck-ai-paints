@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>com.elgato.template.externalWindow</title>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="libs/css/sdpi.css" />
+		
+        <style>
+			body {
+				background-color: transparent;
+			}
+
+			.sdpi-item {
+				max-width: none;
+			}
+
+			.sdpi-heading {
+				margin: 16px 0;
+			}
+
+			ul {
+				max-height: none;
+			}
+			li * {
+				min-height: 18px;
+				padding: 4px;
+				display: flex;
+				align-items: center;
+			}
+
+			.wrap {
+				margin: 8px;
+			}
+			.title {
+				font-weight: bold;
+				padding-bottom: 2px;
+				margin-bottom: 6px;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+				text-transform: uppercase;
+			}
+
+			.wrap {
+				text-align: center;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="sdpi-wrapper">
+			<div class="sdpi-heading"></div>
+			<div class="wrap">
+   
+</head>
+<body>
+    <div class="image-container">
+        <img id="fullImage" src="" alt="Generated Image">
+    </div>
+    <script>
+        // Get the image data from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const imageData = urlParams.get('image');
+        const fullImage = document.getElementById('fullImage');
+        fullImage.src = imageData;
+
+        // Download functionality
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `ai-generated-image-${timestamp}.png`;
+            const link = document.createElement('a');
+            link.href = imageData;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+</body>
+</html>
